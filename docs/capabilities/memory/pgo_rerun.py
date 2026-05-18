@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Render voxels-only vs PGO vs two-pass global maps side-by-side in rerun.
+Also dump the two-pass global maps for the relocalization test.
 
 All three clouds are logged under distinct entity paths so they can be
 toggled / recolored independently in the viewer.
@@ -24,7 +25,7 @@ from dimos.mapping.pgo import PGOMapTransformer, pgo_then_voxels
 from dimos.mapping.voxels import VoxelMapTransformer
 from dimos.memory2.store.sqlite import SqliteStore
 from dimos.msgs.sensor_msgs.PointCloud2 import register_colormap_annotation
-from dimos.utils.data import get_data
+from dimos.utils.data import get_data, get_data_dir
 
 store = SqliteStore(path=get_data("go2_hongkong_office.db"))
 lidar = store.streams.lidar
@@ -42,6 +43,8 @@ pgo_map = (
 
 print("computing two-pass map (PGO trajectory + voxel rebuild)...")
 twopass_map = pgo_then_voxels(slice_lidar, voxel_size=0.05)
+
+(get_data_dir() / "go2_hongkong_office_twopass_map.pc2.lcm").write_bytes(twopass_map.lcm_encode())
 
 rr.init("pgo_compare", spawn=True)
 register_colormap_annotation()
