@@ -40,7 +40,7 @@ DEFAULT_Z_OFFSET = 2.0      # before the first relocalize() converges, offset ma
 ACCUM_MAX = 30              # accumulated lidars scans to feed into relocalize() call
 PUBLISH_INTERVAL = 2.0      # for loaded_map + TF
 RELOC_INTERVAL = 2.0
-MIN_LOCAL_POINTS = 50000
+MIN_LOCAL_POINTS = 500000
 
 
 class RelocalizationModule(Module):
@@ -61,6 +61,8 @@ class RelocalizationModule(Module):
         self._scan_frame_id: str = FRAME_WORLD
 
         self._tf_lock = threading.Lock()
+        self._relocalized = False
+        self._last_skip_log = 0.0
         self._world_to_map: Transform = Transform(
             translation=Vector3(0.0, 0.0, DEFAULT_Z_OFFSET),
             frame_id=FRAME_WORLD,
@@ -117,6 +119,12 @@ class RelocalizationModule(Module):
                 continue
             local_pts = np.concatenate(chunks)
             if len(local_pts) < MIN_LOCAL_POINTS:
+                now = time.monotonic()
+                if now - self._last_skip_log > 5.0:
+                    logger.warning(
+                        f"relocalize skipped: n_pts={len(local_pts)} < MIN_LOCAL_POINTS={MIN_LOCAL_POINTS}"
+                    )
+                    self._last_skip_log = now
                 continue
 
             local_map = PointCloud2.from_numpy(local_pts)
@@ -132,7 +140,6 @@ class RelocalizationModule(Module):
             # relocalize(scan, map) returns T such that scan_in_map_frame = T(scan_raw).
             # We are publishing a TF for map_in_scan_frame, notice that the base frame is `world`
             # so inverse the transform T here to get map_in_scan_frame
-
             T_inv = np.linalg.inv(T)
             new_tf = Transform(
                 translation=Vector3(*T_inv[:3, 3]),
@@ -142,6 +149,7 @@ class RelocalizationModule(Module):
             )
             with self._tf_lock:
                 self._world_to_map = new_tf
+                self._relocalized = True
 
             logger.info(
                 f"relocalize: time_cost={dt:.1f}s n_pts={len(local_pts)} "
@@ -154,7 +162,7 @@ class RelocalizationModule(Module):
 
     def _publish_loop(self) -> None:
         while self._running:
-            if self._map_data is None:
+            if self._map_data is None or not self._relocalized:
                 continue
             self.loaded_map.publish(self._map_data)
 
