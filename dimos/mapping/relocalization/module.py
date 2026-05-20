@@ -126,11 +126,13 @@ class RelocalizationModule(Module):
     def _reloc_loop(self) -> None:
         while self._running:
             if self._premap is None:
+                time.sleep(0.1)
                 continue
 
             with self._local_lock:
                 local_map = self._local_map
             if local_map is None:
+                time.sleep(0.1)
                 continue
 
             n_pts = len(local_map)
