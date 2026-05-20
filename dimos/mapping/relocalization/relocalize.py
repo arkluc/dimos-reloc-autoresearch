@@ -23,7 +23,6 @@ import open3d as o3d
 
 _reg = o3d.pipelines.registration
 
-# ---- Tuning knobs ----------------------------------------------------------
 # (voxel_size, total RANSAC runs at that scale). 0.8m is the coarsest, cheapest
 # scale; it provides anchor candidates that don't need as many restarts.
 SCALE_PLAN: list[tuple[float, int]] = [
