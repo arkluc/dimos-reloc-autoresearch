@@ -18,8 +18,10 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
-import open3d as o3d
+import open3d as o3d  # type: ignore[import-untyped]
 
 _reg = o3d.pipelines.registration
 
@@ -36,7 +38,9 @@ RERANK_DIST = FINE_VOXEL * 1.5  # inlier dist for fine-scale candidate scoring
 GRAVITY_TILT_MAX_DEG = 10.0  # reject candidates whose z-axis tilts more than this
 
 
-def _preprocess(pcd: o3d.geometry.PointCloud, voxel_size: float):
+def _preprocess(
+    pcd: o3d.geometry.PointCloud, voxel_size: float
+) -> tuple[o3d.geometry.PointCloud, Any]:
     """Downsample, estimate normals, compute FPFH descriptors."""
     down = pcd.voxel_down_sample(voxel_size)
     down.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 2, max_nn=30))
@@ -53,19 +57,23 @@ def _preprocess(pcd: o3d.geometry.PointCloud, voxel_size: float):
 # each worker pays the cost; the remaining 4-5 frames it handles get it free.
 # Allowed per program.md: "caching the global map's FPFH features across calls
 # is fine *within one run*; the evaluator instantiates fresh state per process."
-_GLOBAL_CACHE: dict = {}
+_GLOBAL_CACHE: dict[tuple[str, float, int], Any] = {}
 
 
-def _global_preprocess(global_map: o3d.geometry.PointCloud, voxel_size: float):
+def _global_preprocess(
+    global_map: o3d.geometry.PointCloud, voxel_size: float
+) -> tuple[o3d.geometry.PointCloud, Any]:
     key = ("ransac", voxel_size, len(global_map.points))
     cached = _GLOBAL_CACHE.get(key)
     if cached is None:
         cached = _preprocess(global_map, voxel_size)
         _GLOBAL_CACHE[key] = cached
-    return cached
+    return cached  # type: ignore[no-any-return]
 
 
-def _global_fine(global_map: o3d.geometry.PointCloud, voxel_size: float):
+def _global_fine(
+    global_map: o3d.geometry.PointCloud, voxel_size: float
+) -> o3d.geometry.PointCloud:
     key = ("fine", voxel_size, len(global_map.points))
     cached = _GLOBAL_CACHE.get(key)
     if cached is None:
@@ -75,10 +83,16 @@ def _global_fine(global_map: o3d.geometry.PointCloud, voxel_size: float):
         )
         cached = down
         _GLOBAL_CACHE[key] = cached
-    return cached
+    return cached  # type: ignore[no-any-return]
 
 
-def _ransac(src_down, tgt_down, src_fpfh, tgt_fpfh, voxel_size: float):
+def _ransac(
+    src_down: o3d.geometry.PointCloud,
+    tgt_down: o3d.geometry.PointCloud,
+    src_fpfh: Any,
+    tgt_fpfh: Any,
+    voxel_size: float,
+) -> Any:
     """Open3D feature-matching RANSAC. Returns a RegistrationResult.
 
     Docs:

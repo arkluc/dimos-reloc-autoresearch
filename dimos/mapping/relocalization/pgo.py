@@ -23,7 +23,7 @@ import threading
 import time
 from typing import TYPE_CHECKING, Any
 
-import gtsam  # type: ignore[import-untyped]
+import gtsam  # type: ignore[import-not-found,import-untyped]
 import numpy as np
 import open3d as o3d  # type: ignore[import-untyped]
 import open3d.core as o3c  # type: ignore[import-untyped]
@@ -648,7 +648,7 @@ def apply_pgo_corrections(
             grid.dispose()
 
     def _quat_to_R(q: Any) -> np.ndarray:
-        return Rotation.from_quat([q.x, q.y, q.z, q.w]).as_matrix()
+        return np.asarray(Rotation.from_quat([q.x, q.y, q.z, q.w]).as_matrix())
 
     kf_ts = np.array([ps.ts for ps in corrected_poses])
     # Per-keyframe rigid drift correction: T_corr = T_global @ T_local.inv()

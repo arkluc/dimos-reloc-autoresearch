@@ -73,8 +73,8 @@ class CostMapper(Module):
         self.register_disposable(
             combine_latest(
                 self.global_map.observable(),  # type: ignore[no-untyped-call]
-                self.loaded_map.observable().pipe(ops.start_with(None)),  # type: ignore[no-untyped-call]
-                self.world_to_map.observable().pipe(ops.start_with(None)),  # type: ignore[no-untyped-call]
+                self.loaded_map.observable().pipe(ops.start_with(None)),  # type: ignore[no-untyped-call,arg-type]
+                self.world_to_map.observable().pipe(ops.start_with(None)),  # type: ignore[no-untyped-call,arg-type]
             )
             .pipe(ops.map(_maybe_merge))
             .pipe(ops.map(_calculate_and_time))

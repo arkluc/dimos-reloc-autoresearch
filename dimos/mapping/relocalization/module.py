@@ -82,7 +82,7 @@ class RelocalizationModule(Module):
         )
 
     @rpc
-    def start(self):
+    def start(self) -> None:
         super().start()
 
         if not self.config.map_file:
