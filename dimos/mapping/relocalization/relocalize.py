@@ -209,4 +209,14 @@ def relocalize(
         )
         polished.append((float(r.fitness), np.asarray(r.transformation)))
     best_fit, best_T = max(polished, key=lambda fT: fT[0])
-    return best_T, best_fit
+
+    # Stage 3: final ICP on full clouds, incl. floor/ceiling
+    final = _reg.registration_icp(
+        src_fine,
+        tgt_fine,
+        RERANK_DIST,
+        best_T,
+        tukey,
+        _reg.ICPConvergenceCriteria(max_iteration=50),
+    )
+    return np.asarray(final.transformation), best_fit
