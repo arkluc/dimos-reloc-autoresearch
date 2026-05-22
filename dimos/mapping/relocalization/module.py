@@ -17,7 +17,7 @@ from typing import Any
 
 import numpy as np
 import reactivex as rx
-from reactivex import combine_latest, operators as ops
+from reactivex import Subject, combine_latest, operators as ops
 
 from dimos.core.core import rpc
 from dimos.core.module import Module, ModuleConfig
@@ -57,12 +57,12 @@ class RelocalizationModule(Module):
     global_map: In[PointCloud2]
     loaded_map: Out[PointCloud2]
     merged_map: Out[PointCloud2]
-    world_to_map: Out[Transform]
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._premap: PointCloud2 | None = None
         self._last_skip_log = 0.0
+        self._world_to_map: Subject[Transform] = Subject()
 
     @rpc
     def start(self) -> None:
@@ -92,14 +92,14 @@ class RelocalizationModule(Module):
             backpressure(
                 combine_latest(
                     self.global_map.observable(),  # type: ignore[no-untyped-call]
-                    self.world_to_map.observable().pipe(ops.start_with(None)),  # type: ignore[no-untyped-call,arg-type]
+                    self._world_to_map.pipe(ops.start_with(None)),
                 )
             ).subscribe(self._on_merge_input)
         )
 
         self.register_disposable(
             rx.interval(PUBLISH_INTERVAL)
-            .pipe(ops.with_latest_from(self.world_to_map.observable()))  # type: ignore[no-untyped-call]
+            .pipe(ops.with_latest_from(self._world_to_map))
             .subscribe(self._publish_periodic)
         )
 
@@ -124,7 +124,7 @@ class RelocalizationModule(Module):
     def _publish_tf(self, tf: Transform | None) -> None:
         if tf is None:
             return
-        self.world_to_map.publish(tf)
+        self._world_to_map.on_next(tf)
 
     def _try_relocalize(self, msg: PointCloud2) -> Transform | None:
         assert self._premap is not None
