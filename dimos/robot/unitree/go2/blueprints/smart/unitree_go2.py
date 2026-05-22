@@ -65,10 +65,7 @@ unitree_go2_relocalization = autoconnect(
     RelocalizationModule.blueprint(),
 ).global_config(n_workers=11)
 
-__all__ = ["unitree_go2", "unitree_go2_memory", "unitree_go2_relocalization"]
 unitree_go2_memory = autoconnect(
     unitree_go2_markers,
     Go2Memory.blueprint(),
 ).global_config(n_workers=12)
-
-__all__ = ["unitree_go2", "unitree_go2_markers", "unitree_go2_memory"]
