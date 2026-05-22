@@ -62,7 +62,7 @@ class RelocalizationModule(Module):
         super().__init__(**kwargs)
         self._premap: PointCloud2 | None = None
         self._last_skip_log = 0.0
-        self._world_to_map: Subject[Transform] = Subject()
+        self._world_to_map: Subject[Transform | None] = Subject()
 
     @rpc
     def start(self) -> None:
@@ -168,7 +168,7 @@ class RelocalizationModule(Module):
             return
         if self.config.publish_loaded_map:
             self.loaded_map.publish(self._premap)
-        self.tf.publish(tf)
+        self.tf.publish(tf.now())
 
     def _on_merge_input(self, pair: tuple[PointCloud2, Transform | None]) -> None:
         local, tf = pair
